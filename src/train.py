@@ -1,20 +1,21 @@
-from datasets import load_metric, load_dataset
-from transformers import AutoTokenizer, AutoModelForTokenClassification, TrainingArguments, Trainer, DataCollatorForTokenClassification, EarlyStoppingCallback
-from tqdm.notebook import tqdm
-import numpy as np
-import random
-import pandas as pd
-from IPython.display import display, HTML
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+from datasets import load_dataset
 from sklearn.metrics import confusion_matrix
+from transformers import (AutoModelForTokenClassification, AutoTokenizer,
+                          DataCollatorForTokenClassification,
+                          EarlyStoppingCallback, Trainer, TrainingArguments)
+
 
 class NERTrainer:
     def __init__(self, model_checkpoint, task="ner", batch_size=16):
         self.model_checkpoint = model_checkpoint
         self.task = task
         self.batch_size = batch_size
-        self.tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, add_prefix_space=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_checkpoint, add_prefix_space=True)
         self.label_list = None
         self.metric = None
         self.model = None
@@ -28,7 +29,8 @@ class NERTrainer:
         return datasets
 
     def tokenize_and_align_labels(self, examples):
-        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, is_split_into_words=True)
+        tokenized_inputs = self.tokenizer(
+            examples["tokens"], truncation=True, is_split_into_words=True)
         labels = []
         label_all_tokens = True
         for i, label in enumerate(examples[f"{self.task}_tags"]):
@@ -52,7 +54,8 @@ class NERTrainer:
         return tokenized_datasets
 
     def initialize_model(self):
-        self.model = AutoModelForTokenClassification.from_pretrained(self.model_checkpoint, num_labels=len(self.label_list))
+        self.model = AutoModelForTokenClassification.from_pretrained(
+            self.model_checkpoint, num_labels=len(self.label_list))
 
     def initialize_training_args(self, output_dir, eval_steps=7000, save_steps=35000, num_train_epochs=6):
         self.args = TrainingArguments(
@@ -83,7 +86,8 @@ class NERTrainer:
             data_collator=self.data_collator,
             tokenizer=self.tokenizer,
             compute_metrics=self.compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=early_stopping_patience)]
+            callbacks=[EarlyStoppingCallback(
+                early_stopping_patience=early_stopping_patience)]
         )
 
     def train_model(self):
@@ -95,18 +99,24 @@ class NERTrainer:
     def compute_metrics(self, p):
         predictions, labels = p
         predictions = np.argmax(predictions, axis=2)
-        true_predictions = [[self.label_list[p] for (p, l) in zip(prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
-        true_labels = [[self.label_list[l] for (p, l) in zip(prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
-        results = self.metric.compute(predictions=true_predictions, references=true_labels)
+        true_predictions = [[self.label_list[p] for (p, l) in zip(
+            prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
+        true_labels = [[self.label_list[l] for (p, l) in zip(
+            prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
+        results = self.metric.compute(
+            predictions=true_predictions, references=true_labels)
         return {"precision": results["overall_precision"], "recall": results["overall_recall"], "f1": results["overall_f1"], "accuracy": results["overall_accuracy"]}
 
     def predict_and_evaluate(self, tokenized_test_dataset):
         predictions, labels, _ = self.trainer.predict(tokenized_test_dataset)
         predictions = np.argmax(predictions, axis=2)
-        true_predictions = [[self.label_list[p] for (p, l) in zip(prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
-        true_labels = [[self.label_list[l] for (p, l) in zip(prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
+        true_predictions = [[self.label_list[p] for (p, l) in zip(
+            prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
+        true_labels = [[self.label_list[l] for (p, l) in zip(
+            prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
 
-        results = self.metric.compute(predictions=true_predictions, references=true_labels)
+        results = self.metric.compute(
+            predictions=true_predictions, references=true_labels)
         return true_labels, true_predictions, results
 
     def save_and_push_model(self, model_name):
@@ -136,10 +146,11 @@ class NERTrainer:
         cm.columns.name = 'Predicted'
         fig, ax = plt.subplots(figsize=figsize)
         plt.savefig('output.png')
-        sns.heatmap(cm, cmap="YlGnBu", annot=annot, fmt='', ax=ax).figure.savefig('file.png')
+        sns.heatmap(cm, cmap="YlGnBu", annot=annot, fmt='',
+                    ax=ax).figure.savefig('file.png')
 
 
-def main():
+def train():
     # Set your model checkpoint and output directory
     model_checkpoint = "surrey-nlp/roberta-large-finetuned-abbr"
     output_dir = f"{model_checkpoint.split('/')[-1]}-finetuned-ner"
@@ -151,12 +162,14 @@ def main():
     ner_trainer.initialize_model()
     ner_trainer.initialize_training_args(output_dir)
     ner_trainer.initialize_data_collator()
-    ner_trainer.initialize_trainer(tokenized_datasets["train"], tokenized_datasets["validation"])
+    ner_trainer.initialize_trainer(
+        tokenized_datasets["train"], tokenized_datasets["validation"])
 
     ner_trainer.train_model()
     ner_trainer.evaluate_model()
 
-    true_labels, true_predictions, results = ner_trainer.predict_and_evaluate(tokenized_datasets["test"])
+    true_labels, true_predictions, results = ner_trainer.predict_and_evaluate(
+        tokenized_datasets["test"])
 
     # Save and push the model to the Hugging Face Model Hub
     ner_trainer.save_and_push_model(output_dir)
@@ -168,4 +181,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    train()
