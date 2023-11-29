@@ -91,6 +91,7 @@ def get_abbreviations(extractor, cleaned_articles):
     for keyed_abstract in tqdm(abstracts_with_ids):
         # Get the abbreviations for a single abstract, tracked per sentence
         abbrevs = extractor.find_abbreviations(keyed_abstract[1])
+        
 
         if abbrevs.size == 0:
             continue
