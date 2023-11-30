@@ -5,9 +5,6 @@ from spacy.tokenizer import Tokenizer
 from spacy.util import compile_infix_regex
 
 
-BRACKETED_RULE = [{"ORTH": "("}, {"TEXT": {"NOT_IN": [")"]}, "OP": "+"}, {"ORTH": ")"}]
-
-
 def match_abbreviation(short_form: str, long_form: str):
     short_index, long_index = len(short_form) - 1, len(long_form) - 1
 
@@ -47,7 +44,8 @@ def find_abbreviation_candidates(sentence, parentheses_words):
             long_start = max(0, start - min(short_length + 5, short_length * 2))
             long_form = sentence[long_start:start]
 
-            abbreviation_candidates.append((str(word_inside_parentheses), str(long_form)))
+            abbreviation_candidates.append(
+                (str(word_inside_parentheses), str(long_form)))
 
     return abbreviation_candidates
 
@@ -71,7 +69,9 @@ class RuleBaseModel:
 
         self.nlp.tokenizer = custom_tokenizer(self.nlp)
         self.matcher = Matcher(self.nlp.vocab)
-        self.matcher.add("bracketed", [BRACKETED_RULE])
+        self.rule = [{"ORTH": "("}, {"TEXT": {"NOT_IN": [")"]},
+                                     "OP": "+"}, {"ORTH": ")"}]
+        self.matcher.add("bracketed", [self.rule])
 
     def find_abbreviations(self, text):
         processed_text = self.nlp(text)

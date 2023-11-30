@@ -10,12 +10,15 @@ XML_ELEMENTS = {
     "MedlineCitation/Article/Abstract/AbstractText": "abstract",
 }
 
+
 def read_xml(xml_path: str) -> le._Element:
     xml_tree = le.parse(xml_path)
     return xml_tree.getroot()
 
+
 def extract_element_text(element):
     return le.tostring(element, encoding="unicode", method="text", with_tail=False)
+
 
 def load_articles(xml_path: str, target_elements: Dict[str, str] = XML_ELEMENTS) -> pd.DataFrame:
     xml_root = read_xml(xml_path)

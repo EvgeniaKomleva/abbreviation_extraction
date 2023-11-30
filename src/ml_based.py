@@ -38,7 +38,7 @@ class BertAbbreviationExtractor:
 
         for i in range(len(found_entities) - 1, 0, -1):
             if "AC" in found_entities[i]['entity'] and "LF" in found_entities[i - 1]['entity']:
-                matches.append([found_entities[i]['word'],
+                matches.append([found_entities[i]['word'].replace('Ġ', ' '),
                                found_entities[i - 1]['word'].replace('Ġ', ' ')])
 
         return matches

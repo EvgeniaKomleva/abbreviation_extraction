@@ -1,14 +1,17 @@
 import matplotlib.pyplot as plt
+import wandb
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from datasets import load_dataset
+from datasets import load_metric, load_dataset
 from sklearn.metrics import confusion_matrix
 from transformers import (AutoModelForTokenClassification, AutoTokenizer,
                           DataCollatorForTokenClassification,
                           EarlyStoppingCallback, Trainer, TrainingArguments)
 
-
+run = wandb.init(
+    project="abbreviation_extraction",
+)
 class NERTrainer:
     def __init__(self, model_checkpoint, task="ner", batch_size=16):
         self.model_checkpoint = model_checkpoint
@@ -17,7 +20,7 @@ class NERTrainer:
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_checkpoint, add_prefix_space=True)
         self.label_list = None
-        self.metric = None
+        self.metric = load_metric("seqeval")
         self.model = None
         self.args = None
         self.data_collator = None
@@ -69,6 +72,7 @@ class NERTrainer:
             num_train_epochs=num_train_epochs,
             weight_decay=0.001,
             save_steps=save_steps,
+            report_to="wandb",
             push_to_hub=True,
             metric_for_best_model='f1',
             load_best_model_at_end=True
@@ -103,8 +107,7 @@ class NERTrainer:
             prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
         true_labels = [[self.label_list[l] for (p, l) in zip(
             prediction, label) if l != -100] for prediction, label in zip(predictions, labels)]
-        results = self.metric.compute(
-            predictions=true_predictions, references=true_labels)
+        results = self.metric.compute(predictions=true_predictions, references=true_labels)
         return {"precision": results["overall_precision"], "recall": results["overall_recall"], "f1": results["overall_f1"], "accuracy": results["overall_accuracy"]}
 
     def predict_and_evaluate(self, tokenized_test_dataset):

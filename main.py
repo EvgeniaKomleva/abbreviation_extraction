@@ -6,6 +6,7 @@ from src.rule_based import RuleBaseModel
 from src.utils import extract_abbreviations, load_articles
 from src.train import train
 
+
 def main(args):
     articles = load_articles(args.articles)
     cleaned_articles = articles.dropna(subset=["abstract"])
@@ -24,17 +25,16 @@ def main(args):
         train()
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Abbreviation Extraction")
     parser.add_argument(
         "--articles", default="./data/articles.xml", help="Path to the articles XML file"
     )
     parser.add_argument(
-        "--rule_base", default=True, help="Get output from rule-based approach "
+        "--rule_base", default=False, help="Get output from rule-based approach "
     )
     parser.add_argument(
-        "--ml_base", default=True, help="Get output from ml-based approach "
+        "--ml_base", default=False, help="Get output from ml-based approach "
     )
     parser.add_argument(
         "--train", default=False, help="Train ml model "
